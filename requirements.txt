@@ -1,4 +1,4 @@
 aws_lambda_logging==0.1.1
-requests==2.27.1
+requests==2.31.0
 urllib3==1.26.9
 responses==0.17.0
