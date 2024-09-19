@@ -1,11 +1,6 @@
 PACKAGE_DIR=package/package
 ARTIFACT_NAME=package.zip
 ARTIFACT_PATH=package/$(ARTIFACT_NAME)
-ifdef DOTENV
-	DOTENV_TARGET=dotenv
-else
-	DOTENV_TARGET=.env
-endif
 ifdef AWS_ROLE
 	ASSUME_REQUIRED?=assumeRole
 endif
@@ -19,42 +14,42 @@ endif
 ################
 # Entry Points #
 ################
-deps: $(DOTENV_TARGET)
-	docker-compose run $(USER_SETTINGS) --rm serverless make _deps
+deps: .env
+	docker compose run $(USER_SETTINGS) --rm serverless make _deps
 
-build: $(DOTENV_TARGET)
-	docker-compose run $(USER_SETTINGS) --rm virtualenv make _build
+build: .env
+	docker compose run $(USER_SETTINGS) --rm virtualenv make _build
 
-deploy: $(ENV_RM_REQUIRED) $(DOTENV_TARGET) $(ASSUME_REQUIRED)
-	docker-compose run $(USER_SETTINGS) --rm serverless make _deploy
+deploy: $(ENV_RM_REQUIRED) .env $(ASSUME_REQUIRED)
+	docker compose run $(USER_SETTINGS) --rm serverless make _deploy
 
-unitTest: $(ASSUME_REQUIRED) $(DOTENV_TARGET)
-	docker-compose run $(USER_SETTINGS) --rm lambda slack_cloudfront_bot.unit_test
+unitTest: $(ASSUME_REQUIRED) .env
+	docker compose run $(USER_SETTINGS) --rm lambda slack_cloudfront_bot.unit_test
 
-smokeTest: $(DOTENV_TARGET) $(ASSUME_REQUIRED)
-	docker-compose run $(USER_SETTINGS) --rm serverless make _smokeTest
+smokeTest: .env $(ASSUME_REQUIRED)
+	docker compose run $(USER_SETTINGS) --rm serverless make _smokeTest
 
-remove: $(DOTENV_TARGET)
-	docker-compose run $(USER_SETTINGS) --rm serverless make _deps _remove
+remove: .env
+	docker compose run $(USER_SETTINGS) --rm serverless make _deps _remove
 
-unzip: $(DOTENV_TARGET) $(ARTIFACT_PATH)
-	docker-compose run $(USER_SETTINGS) --rm virtualenv make _unzip
+unzip: .env $(ARTIFACT_PATH)
+	docker compose run $(USER_SETTINGS) --rm virtualenv make _unzip
 
-styleTest: $(DOTENV_TARGET)
-	docker-compose run $(USER_SETTINGS) --rm virtualenv make _unzip
-	docker-compose run $(USER_SETTINGS) --rm pep8 --ignore 'E501,E128' *.py
+styleTest: .env
+	docker compose run $(USER_SETTINGS) --rm virtualenv make _unzip
+	docker compose run $(USER_SETTINGS) --rm pep8 --ignore 'E501,E128' *.py
 
-run: $(DOTENV_TARGET)
-	docker-compose run $(USER_SETTINGS) --rm lambda lambda.invalidate
+run: .env
+	docker compose run $(USER_SETTINGS) --rm lambda lambda.invalidate
 .PHONY: run
 
-assumeRole: $(DOTENV_TARGET)
+assumeRole: .env
 	docker run --rm -e "AWS_ACCOUNT_ID" -e "AWS_ROLE" amaysim/aws:1.1.3 assume-role.sh >> .env
 
-test: $(DOTENV_TARGET) styleTest unitTest
+test: .env styleTest unitTest
 
-shell: $(DOTENV_TARGET)
-	docker-compose run $(USER_SETTINGS) --rm virtualenv sh
+shell: .env
+	docker compose run $(USER_SETTINGS) --rm virtualenv sh
 
 ##########
 # Others #
@@ -70,23 +65,13 @@ rm_env:
 	@echo "Create .env with .env.template"
 	cp .env.template .env
 
-# Create/Overwrite .env with $(DOTENV)
-dotenv:
-	@echo "Overwrite .env with $(DOTENV)"
-	cp $(DOTENV) .env
-
-$(DOTENV):
-	$(info overwriting .env file with $(DOTENV))
-	cp $(DOTENV) .env
-.PHONY: $(DOTENV)
-
 $(PACKAGE_DIR)/.piprun: requirements.txt
 	pip install -r requirements.txt -t $(PACKAGE_DIR)
 	@touch "$(PACKAGE_DIR)/.piprun"
 
 _build: $(ARTIFACT_PATH)
 
-$(ARTIFACT_PATH): $(DOTENV_TARGET) *.py $(PACKAGE_DIR)/.piprun
+$(ARTIFACT_PATH): .env *.py $(PACKAGE_DIR)/.piprun
 	cp *.py $(PACKAGE_DIR)
 	cd $(PACKAGE_DIR) && zip -rq ../package .
 
@@ -101,7 +86,7 @@ run/.lastrun: $(ARTIFACT_PATH)
 	cd run && ./lambda.py
 	@touch run/.lastrun
 
-_run: run/.lastrun docker-compose.yml Makefile
+_run: run/.lastrun docker compose.yml Makefile
 
 # Install node_modules for serverless plugins
 _deps: node_modules.zip
