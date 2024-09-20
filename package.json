@@ -1,6 +1,5 @@
 {
   "dependencies": {
-    "serverless-log-forwarding": "1.4.0",
-    "serverless-plugin-aws-alerts": "1.6.1"
+    "serverless-plugin-aws-alerts": "1.7.5"
   }
 }

@@ -1,3 +1,4 @@
+---
 service: MV-${env:REALM}-CloudFront-Bot
 
 plugins:
@@ -6,7 +7,7 @@ plugins:
 
 provider:
   name: aws
-  runtime: python3.8
+  runtime: python3.11
   stage: ${env:ENV}
   memorySize: 128
   versionFunctions: false
@@ -37,8 +38,6 @@ package:
   artifact: package/package.zip
 
 custom:
-  logForwarding:
-    destinationARN: {"Fn::ImportValue": "${env:SUMOLOGIC_LAMBDA_ARN_EXPORT_NAME}"}
   alerts:
     dashboards: true
     topics:

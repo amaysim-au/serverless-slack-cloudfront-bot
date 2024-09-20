@@ -1,7 +1,7 @@
-version: '3'
+---
 services:
   serverless:
-    image: amaysim/serverless:1.26.1
+    image: amaysim/serverless:3.39.0
     env_file: .env
     volumes:
       - ~/.aws:/root/.aws:Z
@@ -15,23 +15,23 @@ services:
     network_mode: "none"
     working_dir: /code
   virtualenv:
-    image: lambci/lambda:build-python3.8
+    build: .
     env_file: .env
     working_dir: /usr/src/app
     entrypoint: []
     volumes:
       - ./:/usr/src/app:Z
-    logging:
-      driver: gelf
-      options:
-        gelf-address: "udp://127.0.0.1:12201"
   lambda:
-    image: lambci/lambda:python3.8
+    image: public.ecr.aws/lambda/python:3.11
     env_file: .env
-    working_dir: /usr/src/app
     volumes:
       - ./run:/var/task:Z
-    logging:
-      driver: gelf
-      options:
-        gelf-address: "udp://127.0.0.1:12201"
+  lambda-test:
+    image: public.ecr.aws/lambda/python:3.11
+    env_file: .env
+    expose:
+      - 8080
+    command:
+      - slack_cloudfront_bot.unit_test
+    volumes:
+      - ./run:/var/task:Z
