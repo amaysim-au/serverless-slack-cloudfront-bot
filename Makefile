@@ -6,8 +6,6 @@ ifdef AWS_ROLE
 endif
 ifdef GO_PIPELINE_NAME
 	ENV_RM_REQUIRED?=rm_env
-else
-	USER_SETTINGS=--user $(shell id -u):$(shell id -g)
 endif
 
 
@@ -15,32 +13,34 @@ endif
 # Entry Points #
 ################
 deps: .env
-	docker compose run $(USER_SETTINGS) --rm serverless make _deps
+	docker compose run --rm serverless make _deps
 
-build: .env
-	docker compose run $(USER_SETTINGS) --rm virtualenv make _build
+build: .env _pullPythonLambda
+	docker compose run --rm virtualenv make _build
 
 deploy: $(ENV_RM_REQUIRED) .env $(ASSUME_REQUIRED)
-	docker compose run $(USER_SETTINGS) --rm serverless make _deploy
+	docker compose run --rm serverless make _deploy
 
-unitTest: $(ASSUME_REQUIRED) .env
-	docker compose run $(USER_SETTINGS) --rm lambda slack_cloudfront_bot.unit_test
+unitTest: $(ASSUME_REQUIRED) .env _pullPythonLambda
+	docker compose up --wait --detach lambda-test
+	docker compose run --rm virtualenv curl -f -s "http://lambda-test:8080/2015-03-31/functions/function/invocations" -d '{}' -v
+	if [[ "$$?" -eq "0" ]]; then echo "Pass" && docker compose down; else echo "Fail" && docker compose down && false; fi
 
 smokeTest: .env $(ASSUME_REQUIRED)
-	docker compose run $(USER_SETTINGS) --rm serverless make _smokeTest
+	docker compose run --rm serverless make _smokeTest
 
 remove: .env
-	docker compose run $(USER_SETTINGS) --rm serverless make _deps _remove
+	docker compose run --rm serverless make _deps _remove
 
-unzip: .env $(ARTIFACT_PATH)
-	docker compose run $(USER_SETTINGS) --rm virtualenv make _unzip
+unzip: .env $(ARTIFACT_PATH) _pullPythonLambda
+	docker compose run --rm virtualenv make _unzip
 
-styleTest: .env
-	docker compose run $(USER_SETTINGS) --rm virtualenv make _unzip
-	docker compose run $(USER_SETTINGS) --rm pep8 --ignore 'E501,E128' *.py
+styleTest: .env _pullPythonLambda
+	docker compose run --rm virtualenv make _unzip
+	docker compose run --rm pep8 --ignore 'E501,E128' *.py
 
 run: .env
-	docker compose run $(USER_SETTINGS) --rm lambda lambda.invalidate
+	docker compose run --rm lambda lambda.invalidate
 .PHONY: run
 
 assumeRole: .env
@@ -48,8 +48,8 @@ assumeRole: .env
 
 test: .env styleTest unitTest
 
-shell: .env
-	docker compose run $(USER_SETTINGS) --rm virtualenv sh
+shell: .env _pullPythonLambda
+	docker compose run  --rm virtualenv sh
 
 ##########
 # Others #
@@ -107,4 +107,13 @@ _remove:
 
 _clean:
 	rm -fr node_modules.zip node_modules .serverless package .requirements venv/ run/ __pycache__/
+	docker rmi -f serverless-slack-cloudfront-bot-virtualenv:latest
 .PHONY: _deploy _remove _clean
+
+_dockerLoginPublicECR:
+	aws ecr-public get-login-password --region us-east-1 | docker login --username AWS --password-stdin public.ecr.aws
+.PHONY: _dockerLoginPublicECR
+
+_pullPythonLambda: _dockerLoginPublicECR
+	docker pull public.ecr.aws/lambda/python:3.11
+.PHONY: _pullPythonLambda
