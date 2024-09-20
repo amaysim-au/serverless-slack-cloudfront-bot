@@ -14,7 +14,6 @@ provider:
     name: amaysim-serverless-deployments-${env:AWS_ACCOUNT_ID}-${env:AWS_REGION}
   timeout: 60
   region: ${env:AWS_REGION}
-  variableSyntax: "\\${(?!AWS::)((?:self|env):[ :a-zA-Z0-9._,\\-\\/\\(\\)]+?)}"
   iamRoleStatements:
     - Effect: Allow
       Action:
