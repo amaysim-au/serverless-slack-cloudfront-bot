@@ -2,7 +2,6 @@
 service: MV-${env:REALM}-CloudFront-Bot
 
 plugins:
-  - serverless-log-forwarding
   - serverless-plugin-aws-alerts
 
 provider:
