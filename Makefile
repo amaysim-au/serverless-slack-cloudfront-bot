@@ -99,10 +99,10 @@ _deploy: $(ARTIFACT_PATH) node_modules.zip
 	mkdir -p node_modules
 	unzip -qo -d . node_modules.zip
 	rm -fr .serverless
-	sls deploy -v
+	sls deploy --verbose
 
 _remove:
-	sls remove -v
+	sls remove --verbose
 	rm -fr .serverless
 
 _clean:
